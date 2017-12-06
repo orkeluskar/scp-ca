@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Stellar Network</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font: 13px Helvetica, Arial; }
+        form {  padding: 3px; position: fixed; bottom: 0; width: 100%; }
+        form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+        form button { background: rgb(130, 224, 255); border: none; padding: 10px; }
+        #messages { list-style-type: none; margin: 0; padding: 0; padding-bottom:40vh;}
+        #messages li { padding: 5px 10px; }
+        #messages li:nth-child(odd) { background: #eee; }
+      </style>
+</head>
+<script language="JavaScript" type="text/javascript"
+src="http://kjur.github.io/jsrsasign/jsrsasign-latest-all-min.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
+   <!-- Compiled and minified JavaScript -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+
+<body>
+        <main style="margin-top:10px;">
+        <div id="modal1" class="modal bottom-sheet">
+                <div class="modal-content">
+                  <h4>Your Name</h4>
+                  <input id="nodeName" type="text" required/>
+                </div>
+                <div class="modal-footer">
+                
+                  <button href="#!" class="modal-action modal-close waves-effect waves-green btn-flat" onclick="setName()">Set Name</button>
+                </div>
+              </div>
+
+              <div id="modal2" class="modal">
+              <div class="modal-content">
+                      <h4>Select your quorum slice</h4>
+                      <p>
+                          <div id="qoptions">
+
+                          </div>
+
+                      
+                    </p>
+                    </div>
+                    <div class="modal-footer">
+                    
+                      <button href="#!" class="modal-action modal-close waves-effect waves-green btn-flat" onclick="createSlice()">Create Slice</button>
+                    </div>
+                  </div>
+
+    
+    <center><h4>Welcome to the Stellar Network</h4>
+    <button class="btn" onclick="viewSlice()">Create Quorum slice</button>
+</center>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" required/><button>Send</button>
+    </form>
+</main>
+</body>
+<script>
+        $( document ).ready(function() {
+            $('.modal').modal();
+            
+            if (localStorage.getItem("nodeName") == undefined){
+                
+                $('#modal1').modal('open');
+            }
+            var isValid = KJUR.jws.JWS.verify("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+                                            , "secret", ["HS256"]);
+            console.log(isValid);
+            
+            
+        });
+
+        viewSlice = async () => {
+            let res = '<select id="qselect" multiple="multiple">';
+            let data ;
+            await $.get( "/view/quorum",  function( data ) {
+                
+                for( i in data){
+                    res += '<option value="' + data[i] + '">' + data[i] + '</option>';
+                   
+                }
+                
+               data = data;
+            });
+            res += '</select>';
+            console.log(res);
+            
+            document.getElementById("qoptions").innerHTML = res;
+            $('#modal2').modal('open');
+            console.log(document.getElementById("qoptions").innerHTML);
+            $('select').material_select();
+           
+        }
+
+        createSlice = async () => {
+            let e = $('#qselect').val();
+            console.log(e);
+            let val = [];
+            
+            for (i in e){
+                console.log(e[i]);
+                val.push(e[i]);
+            }
+            console.log(val);
+            await fetch('/create/slice',{
+                method: 'post',
+                headers: {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    val: val,
+                    nodeName: localStorage.getItem('nodeName')
+                })
+            }).then(function(response) {
+                return response.json();
+            }).then(function(data) {
+                console.log(data);
+            });
+        }
+
+
+        setName = async () =>{
+            let nodeName = document.getElementById('nodeName').value;
+            if (nodeName != ""){
+                localStorage.setItem("nodeName", nodeName);
+                
+               
+            }
+            else{
+                $('#modal1').modal('open');
+            }
+        }
+
+        var socket = io();
+        $(function () {
+            
+        
+        $('form').submit(function(){
+            let req = {
+                msg: $('#m').val(),
+                nodeName: localStorage.getItem('nodeName')
+            }
+        socket.emit('chat message', req);
+            $('#m').val('');
+            return false;
+        });
+        socket.on('chat message', function(msg){
+            let res;
+            if (msg.nodeName == "RESULT" || msg.nodeName == "NEW MESSAGE"){
+                res = "<h6><b>" + msg.nodeName + ": " + msg.msg + "</b></h6>";
+            }
+            else if (msg.nodeName != localStorage.getItem("nodeName"))
+                res = "<p>" + msg.nodeName + ": " + msg.msg + "</p>";
+            else             
+                res = '<p class="right-align">'+ msg.msg + '</p>';
+
+            $('#messages').append($('<li>').html(res));
+        });
+    
+      });
+    </script>
+</html>
