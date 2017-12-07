@@ -4,7 +4,8 @@
   "description": "Stellar Consensus Implementation to solve misuse of issuance of certificates via CAs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
   },
   "author": "",
   "license": "MIT",
